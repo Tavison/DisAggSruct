@@ -1,0 +1,58 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.ncb
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+ipch/
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# CMake (if used)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# JetBrains Rider
+.idea/
+*.iml
+cmake-build-*/
+
+# Compiled output
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.o
+*.a
+*.so
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Installer / packaging
+*.msi
+*.msm
+*.msp
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
