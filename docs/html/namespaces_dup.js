@@ -1,0 +1,56 @@
+var namespaces_dup =
+[
+    [ "DisAgg", "namespace_dis_agg.html", "namespace_dis_agg" ],
+    [ "Finance", "namespace_finance.html", [
+      [ "MORPHEME", "namespace_finance.html#a477ac08db71c2078fdec6640c723ba06", null ],
+      [ "MORPHEME", "namespace_finance.html#a42c0f639eabfccae2e207de751473a56", null ],
+      [ "MORPHEME", "namespace_finance.html#a6839533d60fe89e2fbe1ca8cb9c5a908", null ],
+      [ "MORPHEME", "namespace_finance.html#aa4bfd2ea48df5619558560ec3d3b7363", null ],
+      [ "MORPHEME", "namespace_finance.html#af1a35d24093993c340e60e1ff6d03b50", null ],
+      [ "retrieve", "namespace_finance.html#a622a21e50d8c9664931af80962350adb", null ],
+      [ "retrieve", "namespace_finance.html#ac2e84f714967768b28218eba3c749367", null ],
+      [ "retrieve", "namespace_finance.html#ad54df6cb647656fe39b913aa2f1dbfa2", null ],
+      [ "retrieve", "namespace_finance.html#aebd0b8fcc65ae9257cdfd00e0a5e5987", null ],
+      [ "retrieve", "namespace_finance.html#a3d23c6e7920f33d7d6aedfda718a965a", null ],
+      [ "save", "namespace_finance.html#a9ebbf4e6e6a6d89669b9d1ee9ae940bd", null ],
+      [ "save", "namespace_finance.html#aff1efd1d1ce12351475b69a47fee3ce0", null ],
+      [ "save", "namespace_finance.html#ab26efb0d76763cb434591653025b7510", null ],
+      [ "save", "namespace_finance.html#acc394a2fbe30d5a4439be0a655c0e809", null ],
+      [ "save", "namespace_finance.html#ae47d6ba9b5289c175f5dae3ab127f513", null ]
+    ] ],
+    [ "Sensor", "namespace_sensor.html", [
+      [ "MORPHEME", "namespace_sensor.html#a33b56b66fde267a6fa33b32894b54edf", null ],
+      [ "MORPHEME", "namespace_sensor.html#a1310bc6e29b927e68a9849eacdf9e83a", null ],
+      [ "MORPHEME", "namespace_sensor.html#a15a20745823f9fb41cd61c1178f0efe3", null ],
+      [ "MORPHEME", "namespace_sensor.html#a0017cd49fe0f1d96901793ac0f2347f9", null ],
+      [ "MORPHEME", "namespace_sensor.html#a2a511f286db0920221f14974027d8573", null ],
+      [ "MORPHEME", "namespace_sensor.html#abec31ad4cc46fd24ec38f397b045b6b7", null ],
+      [ "MORPHEME", "namespace_sensor.html#a957247ac26f05893be4cc5316932e4e2", null ],
+      [ "MORPHEME", "namespace_sensor.html#adaa08fc93094c9868a35a66ba00a8da5", null ],
+      [ "retrieve", "namespace_sensor.html#a158618012ff91be46aae12f2d871c213", null ],
+      [ "retrieve", "namespace_sensor.html#a163fe3ff2a24c7acc6abd2387ab1572f", null ],
+      [ "retrieve", "namespace_sensor.html#a4b29dcbcb60150f411804a87494f2a3a", null ],
+      [ "retrieve", "namespace_sensor.html#ae3276e75ff94b66331048d949720fbc2", null ],
+      [ "retrieve", "namespace_sensor.html#ad434f54438e35c2192123472041a9504", null ],
+      [ "retrieve", "namespace_sensor.html#a9bf11f5ae4eacf76865db12c8a08cbd6", null ],
+      [ "retrieve", "namespace_sensor.html#add307c4ac42f2f37f7818dd7714732ac", null ],
+      [ "retrieve", "namespace_sensor.html#a6ecddf375dea0b111333dc5a927913fc", null ]
+    ] ],
+    [ "Weather", "namespace_weather.html", [
+      [ "MORPHEME", "namespace_weather.html#a16ee74f81a9adba8e9121502f4393a34", null ],
+      [ "MORPHEME", "namespace_weather.html#a49dbc4502c4c3444216c0094e6547b4a", null ],
+      [ "MORPHEME", "namespace_weather.html#a2a3673e1c282d708e13992f913d9e25c", null ],
+      [ "MORPHEME", "namespace_weather.html#aebe614b7e1af3e5d39ce80a42c7bd4de", null ],
+      [ "MORPHEME", "namespace_weather.html#af5504af49211045d5caedbf4049f206f", null ],
+      [ "retrieve", "namespace_weather.html#a079edfeb2be20095303bf02319335b20", null ],
+      [ "retrieve", "namespace_weather.html#a537dbf696ec77f613075408cd8eaf6ae", null ],
+      [ "retrieve", "namespace_weather.html#ad90bdef5070fde00fa15d037fd50e208", null ],
+      [ "retrieve", "namespace_weather.html#ad9c57d753c8219c46d7c3534ac489b06", null ],
+      [ "retrieve", "namespace_weather.html#afb8d7b640493e551aae0aa4e5386d58c", null ],
+      [ "save", "namespace_weather.html#a44d4a33b3920b3d83c49ab72512fd6af", null ],
+      [ "save", "namespace_weather.html#a52bf80afaab0a2992ec0d515adb4f62d", null ],
+      [ "save", "namespace_weather.html#a27e5865e38186eb606886a9de3263f55", null ],
+      [ "save", "namespace_weather.html#a1aab0a286f8b69f5515767b59a4da4e9", null ],
+      [ "save", "namespace_weather.html#aaaad2f329fd252af7933e973e30fb77a", null ]
+    ] ]
+];
