@@ -96,6 +96,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,6 +114,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,6 +134,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,6 +156,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,10 +166,44 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Examples\DomainExamples.cpp" />
+    <ClCompile Include="Finance\FinanceBackEnd.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Sensor\SensorBackEnd.cpp" />
+    <ClCompile Include="Sensor\SensorUseCases.cpp" />
+    <ClCompile Include="Tests\Tests.cpp" />
+    <ClCompile Include="Weather\WeatherBackEnd.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DisAggStruct.h" />
+    <ClInclude Include="Core\DisAggStruct.h" />
+    <ClInclude Include="Core\Morpheme.h" />
+    <ClInclude Include="Examples\DomainExamples.h" />
+    <ClInclude Include="Finance\FinanceBackEnd.h" />
+    <ClInclude Include="Finance\FinanceFrontEnd.h" />
+    <ClInclude Include="Finance\FinanceTypes.h" />
+    <ClInclude Include="Sensor\SensorBackEnd.h" />
+    <ClInclude Include="Sensor\SensorFrontEnd.h" />
+    <ClInclude Include="Sensor\SensorTypes.h" />
+    <ClInclude Include="Sensor\SensorUseCases.h" />
+    <ClInclude Include="Tests\Tests.h" />
+    <ClInclude Include="Weather\WeatherBackEnd.h" />
+    <ClInclude Include="Weather\WeatherFrontEnd.h" />
+    <ClInclude Include="Weather\WeatherTypes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DisAggStruct.vcxproj.filters" />
+    <Content Include="x64\Debug\DisAggStruct.tlog\CL.command.1.tlog" />
+    <Content Include="x64\Debug\DisAggStruct.tlog\CL.read.1.tlog" />
+    <Content Include="x64\Debug\DisAggStruct.tlog\CL.write.1.tlog" />
+    <Content Include="x64\Debug\DisAggStruct.tlog\DisAggStruct.lastbuildstate" />
+    <Content Include="x64\Debug\DisAggStruct.tlog\unsuccessfulbuild" />
+    <Content Include="x64\Debug\Main.obj" />
+    <Content Include="x64\Debug\vc145.idb" />
+    <Content Include="x64\Debug\vc145.pdb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="x64\Debug\DisAggStruct_MD.tlog\" />
+    <Folder Include="x64\Debug\microsoft\STL\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
