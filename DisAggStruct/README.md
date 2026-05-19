@@ -179,6 +179,25 @@ A field type with no handler is a **compile error** — handler completeness is 
 
 ---
 
+## Nested structs
+
+`disaggregate` recurses into nested plain aggregate structs automatically. Only the leaf field types need handlers — there is no handler for the containing struct:
+
+```cpp
+// GeoCoord is a plain aggregate — no user-provided constructors.
+// disaggregate recurses into it and calls retrieve() on each leaf field.
+struct GeoCoord      { Latitude lat; Longitude lon;          };
+struct WeatherStation { GeoCoord location; Temperature temp; };
+
+// retrieve(Latitude&), retrieve(Longitude&), retrieve(Temperature&) are called.
+// No retrieve(GeoCoord&) is defined or needed.
+WeatherStation s = GetSensorData(WeatherStation{});
+```
+
+The rule is simple: a field that is itself a plain aggregate (no user-provided constructors) is recursed into. A field that has a user-provided constructor — including all `Morpheme` types and primitives — is a leaf and receives the policy call directly. Nesting can be arbitrarily deep.
+
+---
+
 ## The problem it solves
 
 Picture a market data service at a large financial firm. It provides dozens of fields — last trade price, bid and ask, volume, market cap, dividend yield, earnings date, analyst consensus — each field sourced from a different place. Price comes from a real-time tick feed with microsecond-level latency requirements. Volume is an exchange summary updated every second. Market cap is derived: price times shares outstanding, pulled from a separate corporate database. Dividend yield comes from a corporate actions service with its own wire protocol.
