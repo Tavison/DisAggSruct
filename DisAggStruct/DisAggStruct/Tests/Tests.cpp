@@ -166,6 +166,35 @@ static void TestRoundTrip() {
     CHECK(p2.x == 1 && p2.y == 2 && p2.z == 3);
 }
 
+static void TestNestedStruct() {
+    std::cout << "[TestNestedStruct]\n";
+
+    // A plain aggregate nested inside another — disaggregate recurses into it.
+    // No handler for InnerReading itself; the leaf handlers for SensorId and
+    // Temperature are called directly.
+    struct InnerReading {
+        SensorId    sensorId;
+        Temperature temperature;
+    };
+    struct NestedReading {
+        InnerReading inner;
+        ErrorCode    errorCode;
+        ActiveFlag   active;
+    };
+
+    NestedReading r = get_reading(NestedReading{});
+
+    std::cout << "  inner.sensorId    = " << static_cast<int>(r.inner.sensorId)      << "  (expected 99)\n";
+    std::cout << "  inner.temperature = " << static_cast<float>(r.inner.temperature) << "  (expected 36.6)\n";
+    std::cout << "  errorCode         = " << static_cast<int>(r.errorCode)           << "  (expected 0)\n";
+    std::cout << "  active            = " << static_cast<bool>(r.active)             << "  (expected 1)\n";
+
+    CHECK(static_cast<int>(r.inner.sensorId)               == 99);
+    CHECK_NEAR(static_cast<float>(r.inner.temperature), 36.6f, 1e-4f);
+    CHECK(static_cast<int>(r.errorCode)                    == 0);
+    CHECK(static_cast<bool>(r.active)                      == true);
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 int RunAllTests() {
@@ -173,6 +202,7 @@ int RunAllTests() {
     TestRoundTrip();
     TestRetrieve();
     TestSave();
+    TestNestedStruct();
 
     std::cout << "\nAll tests passed.\n";
     return 0;

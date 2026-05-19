@@ -1,6 +1,7 @@
 # DisAggStruct
 
-Compile-time struct disaggregation and type-safe field dispatch for C++20.
+Zero-overhead compile-time struct disaggregation and type-safe field dispatch for C++20.
+**All dispatch resolves at compile time** — no virtual calls, no registries, no runtime reflection.
 
 ---
 

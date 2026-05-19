@@ -291,46 +291,92 @@ void for_each_field(Tuple& t, Fn&& fn) {
     }(std::make_index_sequence<N>{});
 }
 
+// ── Recursive field visitor ───────────────────────────────────────────────────
+
+namespace detail {
+
+// Forward declaration — visit_all and visit_field are mutually recursive.
+template<typename Field, typename Policy>
+void visit_field(Field& f, Policy& policy);
+
+/**
+ * @brief Decomposes @p s and calls visit_field on each of its fields.
+ */
+template<typename T, typename Policy>
+void visit_all(T& s, Policy& policy) {
+    auto t = to_tuple(s);
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        (visit_field(std::get<Is>(t), policy), ...);
+    }(std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<decltype(t)>>>{});
+}
+
+/**
+ * @brief Dispatches a single field: recurses into nested aggregates, calls
+ *        policy on leaves (Morpheme types, primitives, and anything else that
+ *        is not a plain aggregate struct).
+ *
+ * @c Morpheme has a user-provided constructor and therefore fails
+ * @c std::is_aggregate_v — it correctly lands in the @c else branch.
+ * Only plain structs with no user-provided constructors (nested structs) take
+ * the recursive path.  Arrays are excluded to avoid misuse.
+ */
+template<typename Field, typename Policy>
+void visit_field(Field& f, Policy& policy) {
+    using F = std::remove_cvref_t<Field>;
+    if constexpr (std::is_aggregate_v<F> && !std::is_array_v<F>) {
+        visit_all(f, policy);
+    } else {
+        policy(f);
+    }
+}
+
+} // namespace detail
+
 // ── disaggregate ─────────────────────────────────────────────────────────────
 
 /**
  * @brief Primary public entry point.
  *
- * Disaggregates @p s into a tuple of field references, applies @p policy to
- * every field through those references, then returns the modified copy as @c T.
+ * Disaggregates @p s recursively, applies @p policy to every leaf field, and
+ * returns the modified copy as @c T.  Fields that are themselves plain
+ * aggregate structs are recursed into automatically — @p policy is called only
+ * on non-aggregate leaves (Morpheme types, primitives, etc.).
  *
  * @p policy is any callable with a generic @c operator() — typically a lambda
  * that calls a named free function and lets the compiler resolve the correct
- * overload for each field type.  The policy knows the function name; it does
- * not know the field types.  A field type with no matching overload is a
+ * overload for each field type via ADL.  The policy knows the function name; it
+ * does not know the field types.  A field type with no matching overload is a
  * compile error, enforcing handler completeness at build time.
  *
  * @tparam T       Aggregate struct type.  Deduced from @p s.
  * @tparam Policy  Any callable: lambda, function object, or @c std::function.
  * @param  s       The struct to process.  Passed by value; the caller's
  *                 original is never modified.
- * @param  policy  The callable to invoke on each field.
+ * @param  policy  The callable to invoke on each leaf field.
  * @return         A new @c T with each field populated by its handler.
  *
- * @par Example
+ * @par Flat struct example
  * @code
- *   // Back-end: one free function per type, no framework knowledge needed.
- *   void retrieve(UUID&        v) { v = UUID{ db.next_id() }; }
  *   void retrieve(Temperature& v) { v = Temperature{ sensor.read() }; }
  *
- *   // Wiring: lambda names the function; front-end function names the struct.
  *   Reading get_reading() {
  *       return DisAgg::disaggregate(Reading{}, [](auto& f) { retrieve(f); });
  *   }
+ * @endcode
  *
- *   // Front-end: one call, one return.
- *   Reading r = get_reading();
+ * @par Nested struct example
+ * @code
+ *   struct GeoCoord   { Latitude lat; Longitude lon; };
+ *   struct StationData { GeoCoord location; Temperature temp; };
+ *
+ *   // GeoCoord is a plain aggregate — disaggregate recurses into it.
+ *   // retrieve is called on Latitude, Longitude, and Temperature individually.
+ *   StationData s = DisAgg::disaggregate(StationData{}, [](auto& f) { retrieve(f); });
  * @endcode
  */
 template<typename T, typename Policy>
 T disaggregate(T s, Policy policy) {
-    auto t = to_tuple(s);
-    for_each_field(t, std::move(policy));
+    detail::visit_all(s, policy);
     return s;
 }
 
