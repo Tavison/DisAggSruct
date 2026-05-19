@@ -33,9 +33,6 @@
 #include "Core/Morpheme.h"
 
 namespace Finance {
-    MORPHEME(StockPrice,    float);
-    MORPHEME(Volume,        long long);
-    MORPHEME(MarketCap,     float);
-    MORPHEME(DividendYield, float);
-    MORPHEME(PriceChange,   float);
+    MORPHEMES(float,     StockPrice, MarketCap, DividendYield, PriceChange);
+    MORPHEMES(long long, Volume);
 }

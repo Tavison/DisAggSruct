@@ -38,12 +38,8 @@
 #include "Core/Morpheme.h"
 
 namespace Sensor {
-    MORPHEME(SensorId,    int);
-    MORPHEME(Temperature, float);
-    MORPHEME(Pressure,    float);
-    MORPHEME(Humidity,    float);
-    MORPHEME(Voltage,     float);
-    MORPHEME(ErrorCode,   int);
-    MORPHEME(Timestamp,   long long);
-    MORPHEME(ActiveFlag,  bool);
+    MORPHEMES(float,     Temperature, Pressure, Humidity, Voltage);
+    MORPHEMES(int,       SensorId, ErrorCode);
+    MORPHEMES(long long, Timestamp);
+    MORPHEMES(bool,      ActiveFlag);
 }

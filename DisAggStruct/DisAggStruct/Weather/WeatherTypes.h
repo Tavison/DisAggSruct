@@ -33,9 +33,5 @@
 #include "Core/Morpheme.h"
 
 namespace Weather {
-    MORPHEME(Temperature, float);
-    MORPHEME(Humidity,    float);
-    MORPHEME(Pressure,    float);
-    MORPHEME(WindSpeed,   float);
-    MORPHEME(Rainfall,    float);
+    MORPHEMES(float, Temperature, Humidity, Pressure, WindSpeed, Rainfall);
 }

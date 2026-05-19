@@ -124,15 +124,52 @@ static_assert(DisAgg::field_count_v<Vec3> == 3);
 
 Decompose a struct into a `std::tuple<F0&, F1&, …>` of lvalue references and back. Building blocks for custom visitors.
 
-### `MORPHEME(Name, T)`
+### `MORPHEME(Name, T)` and `MORPHEMES(T, ...)`
+
+The most common objection to strong types is "I have to change all my code." With Morpheme you don't — it converts implicitly in both directions, so existing code keeps compiling unchanged:
 
 ```cpp
+// Before — two floats, indistinguishable to the compiler
+struct Reading {
+    float temperature;
+    float pressure;
+};
+
+// After — one line per type, existing code untouched
 MORPHEME(Temperature, float);
 MORPHEME(Pressure,    float);
 
-Temperature t = 21.5f;   // implicit from float
-Pressure    p = 1013.f;  // distinct type — can't silently mix with t
-float       v = t;        // implicit back to float — no cast needed
+struct Reading {
+    Temperature temperature;   // field name unchanged
+    Pressure    pressure;      // field name unchanged
+};
+
+// Every line of existing client code still compiles:
+float t = reading.temperature;         // implicit to float
+reading.temperature = 21.5f;           // implicit from float
+if (reading.pressure > 1000.0f) { }   // implicit in expressions
+printf("%.1f", (float)reading.temp);  // explicit cast when needed
+```
+
+The only thing that changed is the compiler can now tell `Temperature` and `Pressure` apart — enabling the type-safe dispatch.
+
+When a domain has several quantities sharing the same primitive type (common in finance and sensor work), `MORPHEMES` collapses the vocabulary to one line per primitive:
+
+```cpp
+// Five distinct float types — one line
+MORPHEMES(float, Temperature, Humidity, Pressure, WindSpeed, Rainfall);
+
+// Mix underlying types with separate calls
+MORPHEMES(float,     StockPrice, MarketCap, DividendYield, PriceChange);
+MORPHEMES(long long, Volume, TradeId, Timestamp);
+MORPHEMES(bool,      ActiveFlag, IsValid);
+```
+
+**Macro-free C++20 alternative.** Each `decltype([]{})` at a different source location is a unique type — no macro required:
+
+```cpp
+using Temperature = DisAgg::Morpheme<decltype([]{}), float>;
+using Pressure    = DisAgg::Morpheme<decltype([]{}), float>;  // distinct type
 ```
 
 ---
