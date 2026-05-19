@@ -200,6 +200,7 @@ inline constexpr std::size_t field_count_v = detail::count_fields<std::remove_cv
  */
 template<typename T>
 auto to_tuple(T& s) {
+    static_assert(std::is_aggregate_v<T>, "T must be a plain aggregate struct");
     constexpr std::size_t N = field_count_v<T>;
     static_assert(N <= 16, "to_tuple supports structs with up to 16 fields");
 
@@ -296,7 +297,7 @@ void for_each_field(Tuple& t, Fn&& fn) {
  * @brief Primary public entry point.
  *
  * Disaggregates @p s into a tuple of field references, applies @p policy to
- * every field, then reconstructs and returns the result as @c T.
+ * every field through those references, then returns the modified copy as @c T.
  *
  * @p policy is any callable with a generic @c operator() — typically a lambda
  * that calls a named free function and lets the compiler resolve the correct
@@ -329,8 +330,8 @@ void for_each_field(Tuple& t, Fn&& fn) {
 template<typename T, typename Policy>
 T disaggregate(T s, Policy policy) {
     auto t = to_tuple(s);
-    for_each_field(t, [&policy](auto& field) { policy(field); });
-    return from_tuple<T>(t);
+    for_each_field(t, std::move(policy));
+    return s;
 }
 
 } // namespace DisAgg

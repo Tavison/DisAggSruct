@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\" -Recurse -Include *.h, *.cpp, *.txt, *.md, *.cmake, Makefile, CMakeLists.txt)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(cmake -B build -DCMAKE_BUILD_TYPE=Release)",
+      "PowerShell(cmake *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell($cmake = \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\"; & $cmake -B \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\\\\build\" -S \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\" -DCMAKE_BUILD_TYPE=Release 2>&1 | Select-Object -Last 20)",
+      "PowerShell($cmake = \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\"; & $cmake --build \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\\\\build\" --config Release 2>&1 | Select-Object -Last 30)",
+      "PowerShell(& \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\\\\build\\\\Release\\\\DisAggStruct.exe\")",
+      "PowerShell($cmake = \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\"; & $cmake --build \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\\\\build\" --config Release 2>&1 | Select-Object -Last 10)"
+    ]
+  }
+}

@@ -27,8 +27,14 @@
 #include "Tests/Tests.h"
 #include "Core/DisAggStruct.h"
 #include "Core/Morpheme.h"
+#include <cmath>
+#include <cstdlib>
 #include <iostream>
-#include <cassert>
+
+// Unconditional check — unlike assert(), never compiled away under NDEBUG.
+#define CHECK(expr) do { if (!(expr)) { \
+    std::cerr << "FAILED: " #expr "\n"; std::abort(); } } while(false)
+#define CHECK_NEAR(a, b, eps) CHECK(std::abs((a) - (b)) < (eps))
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED TYPES
@@ -95,10 +101,10 @@ static void TestRetrieve() {
     std::cout << "  errorCode   = " << static_cast<int>(r.errorCode)   << "  (expected 0)\n";
     std::cout << "  active      = " << static_cast<bool>(r.active)     << "  (expected 1)\n";
 
-    assert(static_cast<int>(r.sensorId)      == 99);
-    assert(static_cast<float>(r.temperature) == 36.6f);
-    assert(static_cast<int>(r.errorCode)     == 0);
-    assert(static_cast<bool>(r.active)       == true);
+    CHECK(static_cast<int>(r.sensorId)      == 99);
+    CHECK_NEAR(static_cast<float>(r.temperature), 36.6f, 1e-4f);
+    CHECK(static_cast<int>(r.errorCode)     == 0);
+    CHECK(static_cast<bool>(r.active)       == true);
 }
 
 static void TestSave() {
@@ -136,7 +142,7 @@ static void TestRoundTrip() {
 
     std::cout << "  " << p2.x << ", " << p2.y << ", " << p2.z << "  (expected 1, 2, 3)\n";
 
-    assert(p2.x == 1 && p2.y == 2 && p2.z == 3);
+    CHECK(p2.x == 1 && p2.y == 2 && p2.z == 3);
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Tavison\Sync\Projects\C++\DisAggStruct\DisAggStruct\build\CMakeFiles\0af0dfeaaefdb76e237c3ed050e13aec\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{5D4DD191-8F9C-3E91-A60E-277B9BA443CE}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

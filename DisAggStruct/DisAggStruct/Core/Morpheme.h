@@ -54,6 +54,7 @@
  */
 
 #pragma once
+#include <utility>
 
 namespace DisAgg {
 
@@ -81,7 +82,7 @@ struct Morpheme {
      *
      * @param v  The raw value to wrap.
      */
-    constexpr Morpheme(T v) noexcept : value(v) {}
+    constexpr Morpheme(T v) noexcept : value(std::move(v)) {}
 
     /**
      * @brief Implicit conversion back to the underlying type.

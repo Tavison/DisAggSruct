@@ -43,7 +43,7 @@
 
 #include "Sensor/SensorUseCases.h"
 #include "Sensor/SensorFrontEnd.h"
-#include <iostream>
+#include <cstdio>
 
 using namespace Sensor;
 
@@ -91,41 +91,41 @@ struct FullSnapshot {
 // ── Demonstrations ────────────────────────────────────────────────────────────
 
 void RunUseCases() {
-    std::cout << "=== Sensor Use Cases ===\n\n";
+    std::printf("=== Sensor Use Cases ===\n\n");
 
     // Each call uses the same GetSensorData function.
     // The struct passed in determines what gets retrieved.
     // The back end and front end are untouched for every one of these.
 
     auto weather = GetSensorData(WeatherReading{});
-    std::cout << "WeatherReading (3 fields)\n";
-    std::cout << "  temp     = " << static_cast<float>(weather.temp)     << '\n';
-    std::cout << "  humidity = " << static_cast<float>(weather.humidity) << '\n';
-    std::cout << "  pressure = " << static_cast<float>(weather.pressure) << "\n\n";
+    std::printf("WeatherReading (3 fields)\n");
+    std::printf("  temp     = %.2f\n", (float)weather.temp);
+    std::printf("  humidity = %.2f\n", (float)weather.humidity);
+    std::printf("  pressure = %.2f\n\n", (float)weather.pressure);
 
     auto therm = GetSensorData(Thermometer{});
-    std::cout << "Thermometer (1 field)\n";
-    std::cout << "  temp = " << static_cast<float>(therm.temp) << "\n\n";
+    std::printf("Thermometer (1 field)\n");
+    std::printf("  temp = %.2f\n\n", (float)therm.temp);
 
     auto health = GetSensorData(DeviceHealth{});
-    std::cout << "DeviceHealth (3 different fields)\n";
-    std::cout << "  id        = " << static_cast<int>(health.id)         << '\n';
-    std::cout << "  errorCode = " << static_cast<int>(health.errorCode)  << '\n';
-    std::cout << "  active    = " << static_cast<bool>(health.active)    << "\n\n";
+    std::printf("DeviceHealth (3 different fields)\n");
+    std::printf("  id        = %d\n",  (int)health.id);
+    std::printf("  errorCode = %d\n",  (int)health.errorCode);
+    std::printf("  active    = %d\n\n",(int)(bool)health.active);
 
     auto power = GetSensorData(PowerInfo{});
-    std::cout << "PowerInfo (2 fields)\n";
-    std::cout << "  voltage   = " << static_cast<float>(power.voltage)          << '\n';
-    std::cout << "  timestamp = " << static_cast<long long>(power.timestamp)    << "\n\n";
+    std::printf("PowerInfo (2 fields)\n");
+    std::printf("  voltage   = %.2f\n",  (float)power.voltage);
+    std::printf("  timestamp = %lld\n\n",(long long)power.timestamp);
 
     auto full = GetSensorData(FullSnapshot{});
-    std::cout << "FullSnapshot (all 8 fields)\n";
-    std::cout << "  id        = " << static_cast<int>(full.id)           << '\n';
-    std::cout << "  temp      = " << static_cast<float>(full.temp)       << '\n';
-    std::cout << "  humidity  = " << static_cast<float>(full.humidity)   << '\n';
-    std::cout << "  pressure  = " << static_cast<float>(full.pressure)   << '\n';
-    std::cout << "  voltage   = " << static_cast<float>(full.voltage)    << '\n';
-    std::cout << "  errorCode = " << static_cast<int>(full.errorCode)    << '\n';
-    std::cout << "  timestamp = " << static_cast<long long>(full.timestamp) << '\n';
-    std::cout << "  active    = " << static_cast<bool>(full.active)      << "\n\n";
+    std::printf("FullSnapshot (all 8 fields)\n");
+    std::printf("  id        = %d\n",   (int)full.id);
+    std::printf("  temp      = %.2f\n", (float)full.temp);
+    std::printf("  humidity  = %.2f\n", (float)full.humidity);
+    std::printf("  pressure  = %.2f\n", (float)full.pressure);
+    std::printf("  voltage   = %.2f\n", (float)full.voltage);
+    std::printf("  errorCode = %d\n",   (int)full.errorCode);
+    std::printf("  timestamp = %lld\n", (long long)full.timestamp);
+    std::printf("  active    = %d\n\n", (int)(bool)full.active);
 }
