@@ -11,7 +11,7 @@ A market data service has a dozen field types — price, bid, ask, volume, marke
 
 Different consumers need different subsets. The risk model needs `{ price, volume, market_cap }`. The display widget needs `{ price, bid, ask }`. The compliance snapshot needs everything. New consumer views appear every sprint.
 
-The goal: each consumer issues **one SQL query** with exactly the columns its struct asks for. Each field's handler is written once, tuned for its data source, and reused automatically across every consumer view. Adding a new view requires **zero changes** to any existing code.
+The goal: each field is fetched from wherever it lives — a SQL database, a document store, a real-time feed, an in-memory cache — and each consumer gets exactly the data its struct asks for, nothing more. Each field's handler is written once, tuned for its own data source, and reused automatically across every consumer view. Adding a new view requires **zero changes** to any existing code.
 
 Here is what that looks like with this library:
 
