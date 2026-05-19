@@ -5,6 +5,62 @@ Zero-overhead compile-time struct disaggregation and type-safe field dispatch fo
 
 ---
 
+## The back story
+
+A market data service has a dozen field types — price, bid, ask, volume, market cap, dividend yield, earnings date — each sourced differently. Price comes from a real-time tick feed. Market cap is derived. Dividend yield sits in a corporate actions database with its own protocol.
+
+Different consumers need different subsets. The risk model needs `{ price, volume, market_cap }`. The display widget needs `{ price, bid, ask }`. The compliance snapshot needs everything. New consumer views appear every sprint.
+
+The goal: each consumer issues **one SQL query** with exactly the columns its struct asks for. Each field's handler is written once, tuned for its data source, and reused automatically across every consumer view. Adding a new view requires **zero changes** to any existing code.
+
+Here is what that looks like with this library:
+
+```cpp
+// Back-end — written once by the data-access developer.
+// Each add() overload names its column and captures the assignment.
+struct SqlFetcher {
+    struct Column { const char* name; std::function<void()> assign; };
+    std::vector<Column> cols;
+
+    void add(LastPrice&     v) { cols.push_back({"last_price",     [&v]{ v = 182.47;    }}); }
+    void add(MarketCap&     v) { cols.push_back({"market_cap",     [&v]{ v = 2.80e12;   }}); }
+    void add(DividendYield& v) { cols.push_back({"dividend_yield", [&v]{ v = 0.0055;    }}); }
+    void add(TradeVolume&   v) { cols.push_back({"trade_volume",   [&v]{ v = 4200000LL; }}); }
+
+    void execute(const char* ticker) { /* SELECT <cols> FROM quotes WHERE ticker = ? */ }
+};
+
+// Front end — one template, written once, never touched again.
+template<typename T>
+T FetchQuote(const char* ticker, T s = {}) {
+    SqlFetcher f;
+    DisAgg::disaggregate_inplace(s, [&f](auto& field) { f.add(field); });
+    f.execute(ticker);
+    return s;
+}
+```
+
+Callers define the struct they need. The query writes itself:
+
+```cpp
+struct PriceAndVolume { LastPrice price; TradeVolume volume;                                     };
+struct FullQuote      { LastPrice price; MarketCap cap; DividendYield yield; TradeVolume volume; };
+struct IncomeView     { LastPrice price; DividendYield yield;                                    };
+
+auto pv = FetchQuote("AAPL", PriceAndVolume{});
+// → SELECT last_price, trade_volume FROM quotes WHERE ticker = 'AAPL'
+
+auto fq = FetchQuote("AAPL", FullQuote{});
+// → SELECT last_price, market_cap, dividend_yield, trade_volume FROM quotes WHERE ticker = 'AAPL'
+
+auto iv = FetchQuote("AAPL", IncomeView{});
+// → SELECT last_price, dividend_yield FROM quotes WHERE ticker = 'AAPL'
+```
+
+Three views. Three queries with different column sets. **Zero changes to `SqlFetcher` or `FetchQuote`.** The full working mock is in [`Tests/Tests.cpp`](DisAggStruct/Tests/Tests.cpp).
+
+---
+
 ## The idea
 
 A back end is written once. A front end is written once. After that, **callers define whatever struct they need** — any subset of the known types, in any field order — and it just works. No registration. No code generation. No changes anywhere.
@@ -58,6 +114,32 @@ auto f = GetSensorData(AltOrder{});        //  3 back-end calls, different order
 Six struct shapes. Six function calls. **Zero changes to the back end or front end.**
 
 A field type with no handler is a **compile error** — handler completeness is enforced at build time, not discovered at runtime.
+
+---
+
+## The problem it solves
+
+Picture a market data service at a large financial firm. It provides dozens of fields — last trade price, bid and ask, volume, market cap, dividend yield, earnings date, analyst consensus — each field sourced from a different place. Price comes from a real-time tick feed with microsecond-level latency requirements. Volume is an exchange summary updated every second. Market cap is derived: price times shares outstanding, pulled from a separate corporate database. Dividend yield comes from a corporate actions service with its own wire protocol.
+
+Now picture the consumers. A risk model needs `{ price, volume, market_cap }`. A display widget needs `{ price, bid, ask, last_trade_time }`. An order management system needs `{ price, yield, earnings_date }`. A compliance snapshot needs everything. New consumers appear every release. Field coverage requirements change.
+
+### The traditional paths, and what they cost
+
+**One function per struct type.** Someone writes `FetchRiskSnapshot`, `FetchDisplayData`, `FetchOMSData`, and maintains them as structs evolve. When price's data source changes, every fetch function must be audited. Every new consumer view needs a new function. The wiring is manual, duplicated, and drifts.
+
+**Runtime dispatch.** A type registry maps IDs to fetch functions at startup. Fields are fetched through an interface: a vtable lookup, a `std::visit`, a `std::function` call — an indirect branch the CPU can't predict until it is made. A missing registration is a silent runtime failure, discovered in production when a field comes back zero. In a system processing hundreds of thousands of messages per second, every unpredicted branch costs.
+
+**Code generation.** Schemas drive a generator that emits struct definitions and dispatch tables. Adding a field is a schema edit, a regeneration, and a rebuild of every downstream header. The team now owns a build pipeline, a schema format, and the generator itself.
+
+### What happens instead
+
+The overload set *is* the dispatch table. The compiler builds it, checks it, and optimises it — at build time, not runtime.
+
+Back-end developers write one free function per field type. Each function knows its data source intimately. The price handler talks directly to the tick feed and can be tuned for nanosecond reads. The market-cap handler runs a derived computation against two other values. The yield handler checks a cache before hitting the database. Each is as fast and as specialized as the problem demands. None of them know what struct they will be called from. None of them know how many other fields exist. None of them know this framework exists.
+
+The front-end developer writes one template function per operation. It calls `DisAgg::disaggregate` and names the back-end function. The compiler does the rest: for each field in whatever struct a caller passes, it resolves the right overload and emits a **direct call** — not an indirect one, not a virtual one. The optimizer sees every call site and can inline across them. The assembly output is identical to a hand-written function that calls each handler by name.
+
+Adding a new consumer struct generates zero new code from the back-end or front-end developer. The compiler reuses the handlers that already exist. Adding a new field type means one new `MORPHEME` line and one new handler. Nothing else changes anywhere.
 
 ---
 

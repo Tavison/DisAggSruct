@@ -380,4 +380,32 @@ T disaggregate(T s, Policy policy) {
     return s;
 }
 
+/**
+ * @brief In-place variant of @c disaggregate.
+ *
+ * Visits every leaf field of @p s through lvalue references and calls
+ * @p policy on each, modifying @p s directly.  No copy is made.
+ *
+ * Use this instead of @c disaggregate when the policy needs to store
+ * references to the fields that outlive the call — for example, an
+ * accumulator that collects field addresses to build a batched query
+ * and then assigns results after the traversal completes.
+ *
+ * @tparam T       Aggregate struct type.  Deduced from @p s.
+ * @tparam Policy  Any callable with a generic @c operator().
+ * @param  s       The struct to visit in place.
+ * @param  policy  The callable to invoke on each leaf field.
+ *
+ * @par Example — SQL accumulator
+ * @code
+ *   SqlFetcher f;
+ *   DisAgg::disaggregate_inplace(s, [&f](auto& field) { f.add(field); });
+ *   f.execute(ticker);   // references stored by f still point into s
+ * @endcode
+ */
+template<typename T, typename Policy>
+void disaggregate_inplace(T& s, Policy policy) {
+    detail::visit_all(s, policy);
+}
+
 } // namespace DisAgg

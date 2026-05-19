@@ -28,8 +28,12 @@
 #include "Core/DisAggStruct.h"
 #include "Core/Morpheme.h"
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
+#include <string>
+#include <vector>
 
 // Unconditional check — unlike assert(), never compiled away under NDEBUG.
 #define CHECK(expr) do { if (!(expr)) { \
@@ -45,6 +49,12 @@ MORPHEME(SensorId,    int);
 MORPHEME(Temperature, float);
 MORPHEME(ErrorCode,   int);
 MORPHEME(ActiveFlag,  bool);
+
+// Finance types — used by the SQL accumulator test.
+MORPHEME(LastPrice,     double);
+MORPHEME(MarketCap,     double);
+MORPHEME(DividendYield, double);
+MORPHEME(TradeVolume,   long long);
 
 struct Reading {
     SensorId    sensorId;
@@ -138,6 +148,58 @@ static void TestSave() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SQL ACCUMULATOR
+// The back-end developer writes this once.  Each add() overload names its
+// column and captures the assignment lambda.  After the traversal, execute()
+// builds one SELECT with exactly the columns the caller's struct asked for,
+// then fires each assignment to populate the fields.
+//
+// disaggregate_inplace is used (not disaggregate) so that the lambdas capture
+// references into the caller's struct, not into a temporary copy.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+struct SqlFetcher {
+    struct Column {
+        const char*           name;
+        std::function<void()> assign;
+    };
+    std::vector<Column> cols;
+
+    void add(LastPrice&     v) { cols.push_back({"last_price",     [&v]{ v = 182.47;    }}); }
+    void add(MarketCap&     v) { cols.push_back({"market_cap",     [&v]{ v = 2.80e12;   }}); }
+    void add(DividendYield& v) { cols.push_back({"dividend_yield", [&v]{ v = 0.0055;    }}); }
+    void add(TradeVolume&   v) { cols.push_back({"trade_volume",   [&v]{ v = 4200000LL; }}); }
+
+    void execute(const char* ticker) {
+        // Build the SELECT from whatever columns were accumulated.
+        std::string q = "SELECT ";
+        for (std::size_t i = 0; i < cols.size(); ++i) {
+            if (i) q += ", ";
+            q += cols[i].name;
+        }
+        q += " FROM quotes WHERE ticker = '";
+        q += ticker;
+        q += "'";
+        std::printf("  SQL: %s\n", q.c_str());
+
+        // In production: run the query, read each column from the result set.
+        // Here: assign hard-coded mock values that stand in for DB results.
+        for (auto& c : cols)
+            c.assign();
+    }
+};
+
+// Front-end — one template, written once, handles any struct whose fields
+// are in the type vocabulary above.
+template<typename T>
+T FetchQuote(const char* ticker, T s = {}) {
+    SqlFetcher f;
+    DisAgg::disaggregate_inplace(s, [&f](auto& field) { f.add(field); });
+    f.execute(ticker);
+    return s;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FRAMEWORK TESTS
 // Low-level verification that the machinery underneath works correctly.
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -164,6 +226,35 @@ static void TestRoundTrip() {
     std::cout << "  " << p2.x << ", " << p2.y << ", " << p2.z << "  (expected 1, 2, 3)\n";
 
     CHECK(p2.x == 1 && p2.y == 2 && p2.z == 3);
+}
+
+static void TestSqlAccumulator() {
+    std::printf("[TestSqlAccumulator]\n");
+
+    // Three different views of the same quote data.
+    // Each one issues one SQL query containing exactly its own columns —
+    // nothing more.  SqlFetcher and FetchQuote are never touched.
+    struct PriceAndVolume { LastPrice price; TradeVolume volume;                                       };
+    struct FullQuote      { LastPrice price; MarketCap cap; DividendYield yield; TradeVolume volume;   };
+    struct IncomeView     { LastPrice price; DividendYield yield;                                      };
+
+    auto pv = FetchQuote("AAPL", PriceAndVolume{});
+    auto fq = FetchQuote("AAPL", FullQuote{});
+    auto iv = FetchQuote("AAPL", IncomeView{});
+
+    std::printf("  PriceAndVolume — price=%.2f  volume=%lld\n",
+                (double)pv.price, (long long)pv.volume);
+    std::printf("  FullQuote      — price=%.2f  cap=%.2e  yield=%.4f  volume=%lld\n",
+                (double)fq.price, (double)fq.cap, (double)fq.yield, (long long)fq.volume);
+    std::printf("  IncomeView     — price=%.2f  yield=%.4f\n",
+                (double)iv.price, (double)iv.yield);
+
+    CHECK_NEAR((double)pv.price,  182.47,  0.01);
+    CHECK     ((long long)pv.volume == 4200000LL);
+    CHECK_NEAR((double)fq.cap,    2.80e12, 1e9);
+    CHECK_NEAR((double)fq.yield,  0.0055,  1e-5);
+    CHECK_NEAR((double)iv.price,  182.47,  0.01);
+    CHECK_NEAR((double)iv.yield,  0.0055,  1e-5);
 }
 
 static void TestNestedStruct() {
@@ -198,6 +289,7 @@ static void TestNestedStruct() {
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 int RunAllTests() {
+    TestSqlAccumulator();
     TestFieldCounting();
     TestRoundTrip();
     TestRetrieve();
