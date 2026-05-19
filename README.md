@@ -123,6 +123,19 @@ RiskOnly:      Direct: risk_score (in-memory)
 
 ---
 
+Structs can also be nested. `disaggregate` recurses into plain aggregate sub-structs automatically — only the leaf types need handlers:
+
+```cpp
+struct Conditions    { Temperature temp; Humidity humidity; Pressure pressure; };
+struct WeatherReport { SensorId id; Conditions conditions; ActiveFlag active;  };
+
+// retrieve() is called for SensorId, Temperature, Humidity, Pressure, ActiveFlag.
+// No retrieve(Conditions&) is needed or defined.
+WeatherReport r = GetSensorData(WeatherReport{});
+```
+
+---
+
 ## The idea
 
 A back end is written once. A front end is written once. After that, **callers define whatever struct they need** — any subset of the known types, in any field order — and it just works. No registration. No code generation. No changes anywhere.
