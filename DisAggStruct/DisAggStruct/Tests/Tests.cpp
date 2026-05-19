@@ -53,6 +53,11 @@ struct Reading {
     ActiveFlag  active;
 };
 
+struct MinimalReading {
+    SensorId    sensorId;
+    Temperature temperature;
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // BACK-END
 // The back-end developer writes one free function per type.
@@ -73,38 +78,50 @@ namespace {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WIRING
-// Written once per operation.  Names the back-end function and the struct type.
-// Neither the front-end nor the back-end developer touches this layer.
+// Written once per operation.  Names the back-end function.  Template so that
+// any struct whose fields are in the type vocabulary works without touching
+// this layer or the back end.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-Reading get_reading() {
-    return DisAgg::disaggregate(Reading{}, [](auto& field) { retrieve(field); });
+template<typename T>
+T get_reading(T s = {}) {
+    return DisAgg::disaggregate(s, [](auto& field) { retrieve(field); });
 }
 
-void put_reading(Reading r) {
+template<typename T>
+void put_reading(T r) {
     DisAgg::disaggregate(r, [](auto& field) { save(field); });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FRONT-END
-// The front-end developer sees only get_reading() and put_reading().
-// No templates, no Morpheme, no DisAgg.
+// The caller picks whatever struct shape they need and passes it in.
+// The back end and wiring layer never change regardless of the struct shape.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 static void TestRetrieve() {
     std::cout << "[TestRetrieve]\n";
 
-    Reading r = get_reading();
+    Reading r = get_reading(Reading{});
 
-    std::cout << "  sensorId    = " << static_cast<int>(r.sensorId)    << "  (expected 99)\n";
+    std::cout << "  sensorId    = " << static_cast<int>(r.sensorId)      << "  (expected 99)\n";
     std::cout << "  temperature = " << static_cast<float>(r.temperature) << "  (expected 36.6)\n";
-    std::cout << "  errorCode   = " << static_cast<int>(r.errorCode)   << "  (expected 0)\n";
-    std::cout << "  active      = " << static_cast<bool>(r.active)     << "  (expected 1)\n";
+    std::cout << "  errorCode   = " << static_cast<int>(r.errorCode)     << "  (expected 0)\n";
+    std::cout << "  active      = " << static_cast<bool>(r.active)       << "  (expected 1)\n";
 
-    CHECK(static_cast<int>(r.sensorId)      == 99);
+    CHECK(static_cast<int>(r.sensorId)       == 99);
     CHECK_NEAR(static_cast<float>(r.temperature), 36.6f, 1e-4f);
-    CHECK(static_cast<int>(r.errorCode)     == 0);
-    CHECK(static_cast<bool>(r.active)       == true);
+    CHECK(static_cast<int>(r.errorCode)      == 0);
+    CHECK(static_cast<bool>(r.active)        == true);
+
+    // Same wiring function, smaller struct — back end and wiring are untouched.
+    MinimalReading m = get_reading(MinimalReading{});
+
+    std::cout << "  MinimalReading — sensorId=" << static_cast<int>(m.sensorId)
+              << "  temperature=" << static_cast<float>(m.temperature) << '\n';
+
+    CHECK(static_cast<int>(m.sensorId)       == 99);
+    CHECK_NEAR(static_cast<float>(m.temperature), 36.6f, 1e-4f);
 }
 
 static void TestSave() {
@@ -112,6 +129,10 @@ static void TestSave() {
 
     Reading r{ SensorId{1}, Temperature{22.5f}, ErrorCode{3}, ActiveFlag{false} };
     put_reading(r);
+
+    // Same wiring function with a different struct shape.
+    MinimalReading m{ SensorId{2}, Temperature{18.0f} };
+    put_reading(m);
 
     std::cout << "  save completed without error\n";
 }

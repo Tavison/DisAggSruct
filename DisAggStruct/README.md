@@ -2,57 +2,106 @@
 
 Compile-time struct disaggregation and type-safe field dispatch for C++20.
 
-The framework solves a recurring pain in service and hardware layers: different callers need different subsets of back-end data in different struct shapes. Without DisAggStruct you write bespoke glue code for every struct, and adding a field touches every producer and every consumer. With DisAggStruct, callers define the struct they need. The compiler routes each field to the right handler. The back end and front end never change.
+---
+
+## The idea
+
+A back end is written once. A front end is written once. After that, **callers define whatever struct they need** — any subset of the known types, in any field order — and it just works. No registration. No code generation. No changes anywhere.
 
 ---
 
-## What it looks like
+## Seeing it in action
 
-Define a type vocabulary with `MORPHEME` — zero-friction strong typedefs that make semantically different values of the same primitive type distinct to the compiler:
-
-```cpp
-// SensorTypes.h — written once by the system designer
-MORPHEME(SensorId,    int);
-MORPHEME(Temperature, float);
-MORPHEME(ErrorCode,   int);
-MORPHEME(ActiveFlag,  bool);
-```
-
-Implement one back-end handler per type:
+Eight back-end handlers. One front-end template. Written once, never touched again:
 
 ```cpp
-// SensorBackEnd.cpp — no structs, no templates, no framework knowledge
-void retrieve(SensorId&    v) { v = SensorId{42}; }
-void retrieve(Temperature& v) { v = Temperature{21.5f}; }
-void retrieve(ErrorCode&   v) { v = ErrorCode{0}; }
-void retrieve(ActiveFlag&  v) { v = ActiveFlag{true}; }
-```
+// Back-end — one function per type, no struct or framework knowledge
+void retrieve(SensorId&    v) { v = SensorId{42};           }
+void retrieve(Temperature& v) { v = Temperature{21.5f};     }
+void retrieve(Pressure&    v) { v = Pressure{1013.25f};     }
+void retrieve(Humidity&    v) { v = Humidity{65.0f};        }
+void retrieve(Voltage&     v) { v = Voltage{3.3f};          }
+void retrieve(ErrorCode&   v) { v = ErrorCode{0};           }
+void retrieve(Timestamp&   v) { v = Timestamp{1713312000LL};}
+void retrieve(ActiveFlag&  v) { v = ActiveFlag{true};       }
 
-Wire everything together once in the front end:
-
-```cpp
-// SensorFrontEnd.h — one template, handles any struct shape, never changes
+// Front-end — one template, handles any struct shape
 template<typename T>
 T GetSensorData(T s) {
     return DisAgg::disaggregate(s, [](auto& f) { retrieve(f); });
 }
 ```
 
-Now any caller defines the struct they actually need:
+Now callers define the struct they need — any subset, any field order:
 
 ```cpp
+struct Thermometer    { Temperature temp; };
 struct WeatherReading { Temperature temp; Humidity humidity; Pressure pressure; };
-auto wx = GetSensorData(WeatherReading{});   // 3 back-end calls
+struct PowerInfo      { Voltage voltage; Timestamp timestamp; };
+struct DeviceHealth   { SensorId id; ErrorCode code; ActiveFlag active; };
+struct FullSnapshot   { SensorId id; Temperature temp; Humidity humidity;
+                        Pressure pressure; Voltage voltage; ErrorCode code;
+                        Timestamp timestamp; ActiveFlag active; };
 
-struct Thermometer { Temperature temp; };
-auto th = GetSensorData(Thermometer{});      // 1 back-end call
+// Field order doesn't matter — these resolve identically
+struct AltOrder       { Pressure pressure; Temperature temp; SensorId id; };
 
-struct DeviceHealth { SensorId id; ErrorCode code; ActiveFlag active; };
-auto dh = GetSensorData(DeviceHealth{});     // 3 different back-end calls
+auto a = GetSensorData(Thermometer{});     //  1 back-end call
+auto b = GetSensorData(WeatherReading{});  //  3 back-end calls
+auto c = GetSensorData(PowerInfo{});       //  2 back-end calls
+auto d = GetSensorData(DeviceHealth{});    //  3 different back-end calls
+auto e = GetSensorData(FullSnapshot{});    //  8 back-end calls
+auto f = GetSensorData(AltOrder{});        //  3 back-end calls, different order
 ```
 
-No registration. No code generation. No framework knowledge in the back end.  
-A field type with no handler is a **compile error** — handler completeness is enforced at build time.
+Six struct shapes. Six function calls. **Zero changes to the back end or front end.**
+
+A field type with no handler is a **compile error** — handler completeness is enforced at build time, not discovered at runtime.
+
+---
+
+## How to set it up
+
+### 1 — Define the type vocabulary
+
+`MORPHEME` declares a distinct named type over a primitive. `Temperature` and `Pressure` both wrap `float` but are different types to the compiler, so the dispatcher can tell them apart:
+
+```cpp
+// SensorTypes.h — written once by the system designer
+MORPHEME(SensorId,    int);
+MORPHEME(Temperature, float);
+MORPHEME(Pressure,    float);   // distinct from Temperature despite same underlying type
+MORPHEME(Humidity,    float);
+MORPHEME(Voltage,     float);
+MORPHEME(ErrorCode,   int);
+MORPHEME(Timestamp,   long long);
+MORPHEME(ActiveFlag,  bool);
+```
+
+Morpheme types convert implicitly to and from their underlying type, so no casts are needed in surrounding code.
+
+### 2 — Implement the back end
+
+One free function per type. No structs, no templates, no framework knowledge:
+
+```cpp
+void retrieve(Temperature& v) { v = Temperature{21.5f}; }
+void retrieve(Pressure&    v) { v = Pressure{1013.25f}; }
+// ...one per type
+```
+
+### 3 — Wire the front end
+
+One template per operation. Names the back-end function; the compiler resolves the right overload for each field:
+
+```cpp
+template<typename T>
+T GetSensorData(T s) {
+    return DisAgg::disaggregate(s, [](auto& f) { retrieve(f); });
+}
+```
+
+That's it. Callers now define any struct they like and call `GetSensorData`.
 
 ---
 
@@ -64,7 +113,7 @@ Decomposes aggregate `s` into a tuple of field references, calls `policy(field)`
 
 ### `DisAgg::field_count_v<T>`
 
-Compile-time field counter. Probes aggregate constructibility with cascading C++20 `requires` expressions to determine the number of fields in any aggregate at zero runtime cost.
+Compile-time field counter. Probes aggregate constructibility with cascading C++20 `requires` expressions at zero runtime cost.
 
 ```cpp
 struct Vec3 { float x, y, z; };
@@ -73,50 +122,43 @@ static_assert(DisAgg::field_count_v<Vec3> == 3);
 
 ### `DisAgg::to_tuple(s)` / `DisAgg::from_tuple<T>(t)`
 
-Decompose a struct into a `std::tuple<F0&, F1&, …>` of lvalue references and back. Useful as building blocks for custom visitors.
+Decompose a struct into a `std::tuple<F0&, F1&, …>` of lvalue references and back. Building blocks for custom visitors.
 
 ### `MORPHEME(Name, T)`
-
-Declares a distinct named type wrapping `T`. `Temperature` and `Pressure` both wrap `float` but are different types to the compiler. All operators work implicitly via the underlying type — no operator overloads are needed.
 
 ```cpp
 MORPHEME(Temperature, float);
 MORPHEME(Pressure,    float);
 
-Temperature t = 21.5f;  // implicit from float
-Pressure    p = 1013.f; // distinct type — can't silently mix with t
-float       v = t;       // implicit back to float
+Temperature t = 21.5f;   // implicit from float
+Pressure    p = 1013.f;  // distinct type — can't silently mix with t
+float       v = t;        // implicit back to float — no cast needed
 ```
 
 ---
 
 ## Three-role model
 
-The framework cleanly separates three responsibilities, each with minimal knowledge of the others:
-
 | Role | Knows | Does not need to know |
 |------|-------|-----------------------|
 | **System designer** | The type vocabulary | What structs callers will define |
 | **Back-end implementer** | One handler per type | Struct shapes, templates, the framework |
-| **End user / caller** | The function name and the type vocabulary | Back-end implementations, the framework |
+| **Caller** | The function name and the type vocabulary | Back-end implementations, the framework |
 
-Adding a new type requires: one new `MORPHEME` line, one new handler. Nothing else changes.
+Adding a new type: one new `MORPHEME` line, one new handler. Nothing else changes.
 
 ---
 
 ## Domain sealing
 
-Each domain front-end includes only its own back-end header, so mixing types across domains is a compile error:
+Each domain front-end includes only its own back-end header. Putting a finance type inside a weather struct is a compile error — the type is simply not in scope:
 
 ```cpp
-// WeatherFrontEnd.h includes only WeatherBackEnd.h
-// FinanceFrontEnd.h includes only FinanceBackEnd.h
-
 struct BadMix { Weather::Temperature temp; Finance::StockPrice price; };
 FetchWeather(BadMix{});   // compile error: no retrieve(Finance::StockPrice&) in scope
 ```
 
-The domain wall is the include graph. There is no runtime check, no registry, no attribute.
+The domain wall is the include graph. No runtime check, no registry, no attribute.
 
 ---
 
@@ -141,25 +183,13 @@ Open `DisAggStruct.sln`, set the target to **x64 Release**, then **Build → Bui
 
 ## Running
 
-The executable runs three domain demos followed by the test suite:
-
 ```
 === Sensor Use Cases ===
-WeatherReading (3 fields)
-  temp     = 21.5
-  humidity = 65
-  pressure = 1013.25
+WeatherReading (3 fields)   temp=21.50  humidity=65.00  pressure=1013.25
+Thermometer    (1 field)    temp=21.50
+DeviceHealth   (3 fields)   id=42  errorCode=0  active=1
 ...
-=== Weather ===
-Forecast  — temp: 21.5  humidity: 65.0  pressure: 1013.0
-...
-=== Finance ===
-Ticker       — price: 182.47  volume: 4200000
-...
-[TestFieldCounting]
-[TestRoundTrip]
-[TestRetrieve]
-[TestSave]
+[TestFieldCounting]  [TestRoundTrip]  [TestRetrieve]  [TestSave]
 
 All tests passed.
 ```
