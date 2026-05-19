@@ -50,11 +50,16 @@ MORPHEME(Temperature, float);
 MORPHEME(ErrorCode,   int);
 MORPHEME(ActiveFlag,  bool);
 
-// Finance types — used by the SQL accumulator test.
+// Finance types — SQL accumulator test.
 MORPHEME(LastPrice,     double);
 MORPHEME(MarketCap,     double);
 MORPHEME(DividendYield, double);
 MORPHEME(TradeVolume,   long long);
+
+// Finance types — multi-source dispatch test.
+MORPHEME(AnalystRating, double);
+MORPHEME(NewsSentiment, double);
+MORPHEME(RiskScore,     double);
 
 struct Reading {
     SensorId    sensorId;
@@ -200,6 +205,61 @@ T FetchQuote(const char* ticker, T s = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MULTI-SOURCE DISPATCH
+// The same disaggregate_inplace call routes each field type to the right
+// backend.  The struct shape determines which backends are consulted — a struct
+// with no SQL fields issues no SQL query; a struct with no NoSQL fields never
+// touches the document store.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// NoSQL fetcher — one key-value GET per requested field, batched per struct.
+struct NoSqlFetcher {
+    struct Entry { std::string key; std::function<void()> assign; };
+    std::vector<Entry> entries;
+
+    void add(AnalystRating& v) { entries.push_back({"analyst:rating", [&v]{ v = 4.2;  }}); }
+    void add(NewsSentiment& v) { entries.push_back({"news:sentiment", [&v]{ v = 0.65; }}); }
+
+    void execute(const char* ticker) {
+        for (auto& e : entries) {
+            std::printf("  NoSQL:  GET %s:%s\n", e.key.c_str(), ticker);
+            e.assign();
+        }
+    }
+};
+
+// Router — each add() overload sends its field to the right backend.
+// SQL fields are batched into one SELECT.
+// NoSQL fields are batched into one GET per key.
+// Direct fields are assigned immediately with no I/O.
+struct MultiSourceFetcher {
+    SqlFetcher   sql;
+    NoSqlFetcher nosql;
+    std::vector<const char*> direct;
+
+    void add(LastPrice&     v) { sql.add(v);   }   // exchange database
+    void add(TradeVolume&   v) { sql.add(v);   }   // exchange database
+    void add(AnalystRating& v) { nosql.add(v); }   // analyst document store
+    void add(NewsSentiment& v) { nosql.add(v); }   // news pipeline
+    void add(RiskScore&     v) { v = 0.73; direct.push_back("risk_score"); }  // in-memory
+
+    void execute(const char* ticker) {
+        if (!sql.cols.empty())      sql.execute(ticker);
+        if (!nosql.entries.empty()) nosql.execute(ticker);
+        for (auto* name : direct)
+            std::printf("  Direct: %s (in-memory)\n", name);
+    }
+};
+
+template<typename T>
+T FetchInstrument(const char* ticker, T s = {}) {
+    MultiSourceFetcher f;
+    DisAgg::disaggregate_inplace(s, [&f](auto& field) { f.add(field); });
+    f.execute(ticker);
+    return s;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FRAMEWORK TESTS
 // Low-level verification that the machinery underneath works correctly.
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -257,6 +317,39 @@ static void TestSqlAccumulator() {
     CHECK_NEAR((double)iv.yield,  0.0055,  1e-5);
 }
 
+static void TestMultiSourceFetch() {
+    std::printf("[TestMultiSourceFetch]\n");
+
+    // Four views of the same instrument.  Each struct shape determines exactly
+    // which backends are consulted — nothing more is ever called.
+    struct TradingView  { LastPrice price; TradeVolume volume; RiskScore risk;                          };
+    struct ResearchView { LastPrice price; AnalystRating rating; NewsSentiment sentiment; RiskScore risk; };
+    struct RiskOnly     { RiskScore risk;                                                               };
+    struct FullView     { LastPrice price; TradeVolume volume;
+                          AnalystRating rating; NewsSentiment sentiment; RiskScore risk;                };
+
+    std::printf("  -- TradingView: SQL + direct --\n");
+    auto tv = FetchInstrument("MSFT", TradingView{});
+
+    std::printf("  -- ResearchView: SQL + NoSQL + direct --\n");
+    auto rv = FetchInstrument("MSFT", ResearchView{});
+
+    std::printf("  -- RiskOnly: direct only (no SQL, no NoSQL issued) --\n");
+    auto ro = FetchInstrument("MSFT", RiskOnly{});
+
+    std::printf("  -- FullView: all three sources --\n");
+    auto fv = FetchInstrument("MSFT", FullView{});
+
+    CHECK_NEAR((double)tv.price,      182.47, 0.01);
+    CHECK     ((long long)tv.volume   == 4200000LL);
+    CHECK_NEAR((double)tv.risk,       0.73,   0.001);
+    CHECK_NEAR((double)rv.rating,     4.2,    0.01);
+    CHECK_NEAR((double)rv.sentiment,  0.65,   0.001);
+    CHECK_NEAR((double)ro.risk,       0.73,   0.001);
+    CHECK_NEAR((double)fv.price,      182.47, 0.01);
+    CHECK_NEAR((double)fv.sentiment,  0.65,   0.001);
+}
+
 static void TestNestedStruct() {
     std::cout << "[TestNestedStruct]\n";
 
@@ -290,6 +383,7 @@ static void TestNestedStruct() {
 
 int RunAllTests() {
     TestSqlAccumulator();
+    TestMultiSourceFetch();
     TestFieldCounting();
     TestRoundTrip();
     TestRetrieve();

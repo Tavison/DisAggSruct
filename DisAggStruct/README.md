@@ -61,6 +61,68 @@ Three views. Three queries with different column sets. **Zero changes to `SqlFet
 
 ---
 
+## Multiple data sources
+
+The same mechanism extends to multiple backends. A router struct holds one fetcher per source and routes each field type to the right one via overloaded `add()` methods. The struct the caller passes determines which backends are consulted — fields that aren't in the struct are never touched:
+
+```cpp
+struct NoSqlFetcher {
+    // One GET per requested field, batched per struct
+    void add(AnalystRating& v) { entries.push_back({"analyst:rating", [&v]{ v = 4.2;  }}); }
+    void add(NewsSentiment& v) { entries.push_back({"news:sentiment", [&v]{ v = 0.65; }}); }
+    void execute(const char* ticker) { /* GET analyst:rating:MSFT, etc. */ }
+};
+
+struct MultiSourceFetcher {
+    SqlFetcher   sql;
+    NoSqlFetcher nosql;
+
+    void add(LastPrice&     v) { sql.add(v);   }   // exchange database  → batched SELECT
+    void add(TradeVolume&   v) { sql.add(v);   }   // exchange database  → batched SELECT
+    void add(AnalystRating& v) { nosql.add(v); }   // analyst doc store  → batched GET
+    void add(NewsSentiment& v) { nosql.add(v); }   // news pipeline      → batched GET
+    void add(RiskScore&     v) { v = compute(); }  // in-memory engine   → no I/O at all
+
+    void execute(const char* ticker) {
+        if (!sql.cols.empty())      sql.execute(ticker);
+        if (!nosql.entries.empty()) nosql.execute(ticker);
+    }
+};
+
+template<typename T>
+T FetchInstrument(const char* ticker, T s = {}) {
+    MultiSourceFetcher f;
+    DisAgg::disaggregate_inplace(s, [&f](auto& field) { f.add(field); });
+    f.execute(ticker);
+    return s;
+}
+```
+
+The struct shape controls everything:
+
+```cpp
+struct TradingView  { LastPrice price; TradeVolume volume; RiskScore risk;               };
+struct ResearchView { LastPrice price; AnalystRating rating; NewsSentiment sent; RiskScore risk; };
+struct RiskOnly     { RiskScore risk;                                                     };
+```
+
+```
+TradingView:   SQL: SELECT last_price, trade_volume FROM quotes WHERE ticker = 'MSFT'
+               Direct: risk_score (in-memory)
+
+ResearchView:  SQL: SELECT last_price FROM quotes WHERE ticker = 'MSFT'
+               NoSQL: GET analyst:rating:MSFT
+               NoSQL: GET news:sentiment:MSFT
+               Direct: risk_score (in-memory)
+
+RiskOnly:      Direct: risk_score (in-memory)
+               ← no SQL query, no NoSQL query
+```
+
+`RiskOnly` never opens a connection. `TradingView` never touches the document store. Each backend is called only when the caller's struct says it is needed — nothing more.
+
+---
+
 ## The idea
 
 A back end is written once. A front end is written once. After that, **callers define whatever struct they need** — any subset of the known types, in any field order — and it just works. No registration. No code generation. No changes anywhere.

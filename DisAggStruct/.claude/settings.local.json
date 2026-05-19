@@ -21,7 +21,8 @@
       "PowerShell(& \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\build\\\\Release\\\\DisAggStruct.exe\")",
       "Bash(git -C \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\" log --oneline --all)",
       "Bash(git -C \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\" stash list)",
-      "Bash(git -C \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\" log --all --oneline)"
+      "Bash(git -C \"C:\\\\Users\\\\Tavison\\\\Sync\\\\Projects\\\\C++\\\\DisAggStruct\\\\DisAggStruct\" log --all --oneline)",
+      "Bash(git *)"
     ]
   }
 }
